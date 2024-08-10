@@ -1,27 +1,75 @@
 version: '3.8'
 
 services:
-   ms-cliente-persona:
-    image: 'ms-cliente-persona-img:v1'
-    container_name: 'ms-cliente-persona-cont'      
+   ms-eureka:
+    image: 'ms-eureka-img'
+    container_name: 'ms-eureka-cont'      
     build:
-      context: ./ms-cliente-persona
-      dockerfile: DockerFile
+      context: ./ms-eureka
+      dockerfile: Dockerfile
     ports:
-      - '9091:8090'
+      - '8761:8761'
+    restart: always
+    networks:
+      - network_devsu     
+   
+   ms-gateway:
+    image: 'ms-gateway-img'
+    container_name: 'ms-gateway-cont'      
+    build:
+      context: ./ms-gateway
+      dockerfile: Dockerfile
     depends_on:
-      - postgres
+      - ms-eureka
+      - ms-cliente-persona
+      - ms-cuenta-movimiento   
+    environment:
+      EUREKA_SERVER: http://ms-eureka-server:8761/eureka         
+    ports:
+      - '8080:8080'
     restart: always
     networks:
       - network_devsu
+
+   ms-cliente-persona:
+    image: 'ms-cliente-persona-img'
+    container_name: 'ms-cliente-persona-cont'      
+    build:
+      context: ./ms-cliente-persona
+      dockerfile: Dockerfile        
+    ports:
+      - '8090:8090'
+    depends_on:
+      - postgres
+      - ms-eureka      
+    restart: always
+    networks:
+      - network_devsu
+   
+   ms-cuenta-movimiento:
+    image: 'ms-cuenta-movimiento-img'
+    container_name: 'ms-cuenta-movimiento-cont'      
+    build:
+      context: ./ms-cuenta-movimiento
+      dockerfile: Dockerfile
+    ports:
+      - '9090:9090'
+    depends_on:
+      - postgres
+      - ms-eureka      
+    restart: always
+    networks:
+      - network_devsu   
+   
    postgres:
     image: postgres:14.4
+    container_name: 'postgres-cont'
     restart: always
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=admin
     ports:
-      - '5432:5432'
+      - '5433:5432'
     volumes: 
       - postgres:/var/lib/postgresql/data
     networks:
